@@ -17,5 +17,4 @@ def heatmap(data):
     plt.title("Heatmap")
     obj = plt.matshow(data)
     plt.colorbar(obj)
-    plt.show()
-    
+#    plt.show()

@@ -15,7 +15,7 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, accuracy_score
 import matplotlib.pyplot as plt
-
+from plots import heatmap
 
 
 def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
@@ -153,7 +153,17 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
     plt.title('')
     for i, value in enumerate(X):
         plt.plot(range(X.shape[1]), value, 'b-o' if y[i] == 0 else 'm-o')
+#        heatmap(value)
     plt.show()
+    
+    plt.figure('Heatmap of original data: X')
+    for i in range(len(connectivity_mat)):
+        data = connectivity_mat[i]     
+        plt.subplot(14, 6, i+1)
+        heatmap(data)
+    plt.show()
+        
+        
 
     score = []
     n_folds = 10
@@ -183,13 +193,13 @@ def node_centrality(X):
     """
     XX = np.zeros((X.shape[0], np.sqrt(X.shape[1])))
     for i, value in enumerate(X):
-        adj_mat = value.reshape((np.sqrt(len(value)), -1))
+        adj_mat = value.reshape((np.sqrt(len(value)), -1)) # reshape to 254x254
         adj_mat = (adj_mat - np.min(adj_mat)) / (np.max(adj_mat) - np.min(adj_mat))
 #        adj_mat = 1 - adj_mat
         
         th = np.mean(adj_mat)
         th = np.mean(adj_mat) + 0.22 #22
-        adj_mat = np.where(adj_mat > th, 1., 0.)
+        adj_mat = np.where(adj_mat > th, 1., 0.) # binary adjacency matrix
         
         g = nx.from_numpy_matrix(adj_mat)
         print "Graph Nodes = {0}, Graph Edges = {1} ".format(g.number_of_nodes(), g.number_of_edges())
