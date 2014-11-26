@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Comparison of different embedding techniques for brain decoding
 """
@@ -15,7 +16,8 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, accuracy_score
 import matplotlib.pyplot as plt
-from plots import heatmap
+import matplotlib.gridspec as gridspec
+from plots import *
 
 
 def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
@@ -78,10 +80,10 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 
 
     X = np.zeros((len(connectivity_mat), connectivity_mat[0].shape[0] * connectivity_mat[0].shape[1]))
-    
+
     for i, value in enumerate(connectivity_mat):
         X[i] = value.reshape(-1)
-    
+
     y = np.array(y)
     X = np.where(X == np.inf, 0, X)
 
@@ -106,27 +108,27 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 
     if (graph_metric == "1"):    # node_centrality
         print "=====Edge Information Node Centrality====="
-        X = node_centrality(X)    
+        X = node_centrality(X)
     elif (graph_metric == "2"):    # node_centrality
         print "=====Edge Information Node Closeness Centrality====="
         X = node_closeness_centrality(X)
     elif (graph_metric == "3"):  # node_betweeness
-        print "=====Edge Information Node Betweeness Centrality====="        
+        print "=====Edge Information Node Betweeness Centrality====="
         X = node_betweeness_centrality(X)
     elif (graph_metric == "4"):  # edge_betweeness
-        print "=====Edge Information Edge Betweeness Centrality====="        
+        print "=====Edge Information Edge Betweeness Centrality====="
         X = edge_betweeness_centrality(X)
     elif (graph_metric == "5"):   # node_eigenvector
-        print "=====Edge Information Node Eigenvector Centrality====="        
+        print "=====Edge Information Node Eigenvector Centrality====="
         X = node_eigenvector_centrality(X)
     elif (graph_metric == "6"):  # node_communicability
-        print "=====Edge Information Node Communicability Centrality====="        
+        print "=====Edge Information Node Communicability Centrality====="
         X = node_communicability_centrality(X)
     elif (graph_metric == "7"):  # node_load_centrality
-        print "=====Edge Information Node Load Centrality====="        
+        print "=====Edge Information Node Load Centrality====="
         X = node_load_centrality(X)
     elif (graph_metric == "8"):  # node_current_flow_centrality
-        print "=====Edge Information Node Current Flow Closeness Centrality====="        
+        print "=====Edge Information Node Current Flow Closeness Centrality====="
         X = node_current_flow_closeness_centrality(X)
     else:
         print "Wrong Choice!"
@@ -150,20 +152,13 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 #    ss = StandardScaler()
 #    X = ss.fit_transform(X.T).T
 
-    plt.title('')
-    for i, value in enumerate(X):
-        plt.plot(range(X.shape[1]), value, 'b-o' if y[i] == 0 else 'm-o')
-#        heatmap(value)
-    plt.show()
-    
-    plt.figure('Heatmap of original data: X')
-    for i in range(len(connectivity_mat)):
-        data = connectivity_mat[i]     
-        plt.subplot(14, 6, i+1)
-        heatmap(data)
-    plt.show()
-        
-        
+#    plt.title('Histogram')
+#    for i, value in enumerate(X):
+#        plt.plot(range(X.shape[1]), value, 'b-o' if y[i] == 0 else 'm-o')
+#    plt.show()
+
+#    heatmap(connectivity_mat)
+#    scatter_mat(X[:, :10])
 
     score = []
     n_folds = 10
@@ -196,14 +191,19 @@ def node_centrality(X):
         adj_mat = value.reshape((np.sqrt(len(value)), -1)) # reshape to 254x254
         adj_mat = (adj_mat - np.min(adj_mat)) / (np.max(adj_mat) - np.min(adj_mat))
 #        adj_mat = 1 - adj_mat
-        
+
         th = np.mean(adj_mat)
         th = np.mean(adj_mat) + 0.22 #22
         adj_mat = np.where(adj_mat > th, 1., 0.) # binary adjacency matrix
-        
+
         g = nx.from_numpy_matrix(adj_mat)
         print "Graph Nodes = {0}, Graph Edges = {1} ".format(g.number_of_nodes(), g.number_of_edges())
-        print "Edge kept ratio,".format(float(g.number_of_edges())/((g.number_of_nodes()*(g.number_of_nodes()-1))/2))
+        print "Edge kept ratio, {0}".format(float(g.number_of_edges())/((g.number_of_nodes()*(g.number_of_nodes()-1))/2))
+
+#        plt.subplot(14, 6, i+1)
+        gs = gridspec.GridSpec(5, 2, width_ratios=[2,1])
+        ax1 = plt.subplot(gs[i, i+1, i+2, i+3, i+4, i+5, i+6, i+7, i+8, i+9])
+        graph_plot(g)
 
         deg_cent = nx.degree_centrality(g)
         node_cent = np.zeros(g.number_of_nodes())
@@ -410,7 +410,7 @@ def edge_betweeness_centrality(X):
         g = nx.from_numpy_matrix(adj_mat)
         print "Graph Nodes = {0}, Graph Edges = {1} ".format(g.number_of_nodes(), g.number_of_edges())
         print "\nEdge kept ratio, {0}".format(float(g.number_of_edges())/((g.number_of_nodes()*(g.number_of_nodes()-1))/2))
-        
+
         bet_cent = nx.edge_betweenness_centrality(g, weight = 'weight', normalized = True)
         edge_cent = np.zeros(adj_mat.shape)
 
