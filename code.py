@@ -9,9 +9,13 @@ import os
 import pandas as pd
 from sklearn.cross_validation import cross_val_score, KFold, StratifiedKFold
 from sklearn.svm import SVC, LinearSVC
+#from sklearn.lda import LDA
+#from sklearn.qda import QDA
+from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.linear_model import ElasticNet, SGDRegressor
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SelectKBest, chi2, f_classif, RFE
 from sklearn.grid_search import GridSearchCV
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score, accuracy_score
@@ -160,6 +164,53 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 #    heatmap(connectivity_mat)
 #    scatter_mat(X[:, :10])
 
+#    sel = VarianceThreshold(threshold=(0.3 * (1 - 0.5)))
+#    X = sel.fit_transform(X)
+#    X = SelectKBest(f_classif, k=60).fit_transform(X, y) 10% increase in some embedding techniques
+
+#    svc = SVC(kernel="linear", C=1)
+#    rfe = RFE(estimator=svc, n_features_to_select=1, step=1)
+#    rfe.fit(X, y)
+
+#    Tree-based feautre selection
+#     clf = ExtraTreesClassifier()
+#     X_new = clf.fit(X, y).transform(X)
+
+#    In this snippet we make use of a sklearn.svm.LinearSVC to evaluate feature
+#    importances and select the most relevant features. Then,
+#   a sklearn.ensemble.RandomForestClassifier is trained on the
+#    transformed output, i.e. using only relevant features.
+#    You can perform similar operations with the other feature
+#   selection methods and also classifiers that provide a way to
+#   evaluate feature importances of course
+
+#    clf = Pipeline([
+#      ('feature_selection', LinearSVC(penalty="l1")),
+#      ('classification', RandomForestClassifier())
+#    ])
+#    clf.fit(X, y)
+
+#   LDA vs. QDA classifiers
+#    for i, (X, y) in enumerate([dataset_fixed_cov(), dataset_cov()]):
+#        # LDA
+#        lda = LDA()
+#        y_pred = lda.fit(X, y, store_covariance=True).predict(X)
+#        splot = plot_data(lda, X, y, y_pred, fig_index=2 * i + 1)
+#        plot_lda_cov(lda, splot)
+#        plt.axis('tight')
+#
+#        # QDA
+#        qda = QDA()
+#        y_pred = qda.fit(X, y, store_covariances=True).predict(X)
+#        splot = plot_data(qda, X, y, y_pred, fig_index=2 * i + 2)
+#        plot_qda_cov(qda, splot)
+#        plt.axis('tight')
+#    plt.suptitle('LDA vs QDA')
+#    plt.show()
+
+    clf_tmp = ExtraTreesClassifier()
+    X = clf_tmp.fit(X, y).transform(X)
+
     score = []
     n_folds = 10
     kfold = StratifiedKFold(y, n_folds)
@@ -186,6 +237,8 @@ def node_centrality(X):
     """
     based on networkx function: degree_centrality
     """
+#    graph_position = np.arange(0, 192, 48)
+#    pos_counter = 0
     XX = np.zeros((X.shape[0], np.sqrt(X.shape[1])))
     for i, value in enumerate(X):
         adj_mat = value.reshape((np.sqrt(len(value)), -1)) # reshape to 254x254
@@ -200,10 +253,14 @@ def node_centrality(X):
         print "Graph Nodes = {0}, Graph Edges = {1} ".format(g.number_of_nodes(), g.number_of_edges())
         print "Edge kept ratio, {0}".format(float(g.number_of_edges())/((g.number_of_nodes()*(g.number_of_nodes()-1))/2))
 
-#        plt.subplot(14, 6, i+1)
-        gs = gridspec.GridSpec(5, 2, width_ratios=[2,1])
-        ax1 = plt.subplot(gs[i, i+1, i+2, i+3, i+4, i+5, i+6, i+7, i+8, i+9])
-        graph_plot(g)
+#        graph plotting
+#        if (pos_counter > 3): pos_counter = 0
+#        nfigs = False
+#        from_graph = 4
+#        to_graph = 8
+#        graph_plot(g, i, graph_position[pos_counter], from_graph, to_graph, nfigs, \
+#                   subplot = True)
+#        pos_counter += 1
 
         deg_cent = nx.degree_centrality(g)
         node_cent = np.zeros(g.number_of_nodes())

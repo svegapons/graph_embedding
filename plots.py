@@ -66,7 +66,40 @@ def scatter_mat(data):
     scatter_matrix(df, alpha=0.2, figsize=(6, 6), diagonal='kde')
 
 # %%
-def graph_plot(graph_object):
-    nx.draw(graph_object, nx.spring_layout(graph_object))
+def graph_plot(graph_object, counter, graph_loc, _from = None, _to = None, nFigures = None,\
+              subplot = False):
+    if (isnull(nFigures)):
+        nx.draw(graph_object, nx.spring_layout(graph_object))
+    elif (not isnull(nFigures) and plt.is_numlike(nFigures) and subplot == False):
+        if (counter < nFigures):
+            plt.figure()
+            nx.draw(graph_object, nx.spring_layout(graph_object))
+    elif (not isnull(_from) and plt.is_numlike(_from) and not isnull(_to) \
+          and plt.is_numlike(_to) and subplot == True):
+#        plt.figure()
+#        if (counter == 0):  j = counter
+#        else: j = counter * 48
+#        inner_counter = 0
+        if (_from <= counter and counter < _to):
+#            graph_position = np.arange(0, 192, 48)
+            plt.subplot2grid((192, 3), (graph_loc, 3), \
+            rowspan = 48, colspan = 4)
+            nx.draw(graph_object, nx.spring_layout(graph_object))
+            plt.hold(True)
+#            inner_counter += 1
+    plt.axis('tight')
+    plt.show()
+
+# %%
+def test_plot(image):
+    graph = nx.from_numpy_matrix(image)
+    plt.subplot2grid((9, 3), (0, 0), rowspan=3, colspan=3)
+    nx.draw(graph, nx.spring_layout(graph))
+    plt.hold(True)
+    plt.subplot2grid((9, 3), (3, 0), rowspan=3, colspan=3)
+    nx.draw(graph, nx.spring_layout(graph))
+    plt.hold(True)
+    plt.subplot2grid((9, 3), (6, 0), rowspan=3, colspan=3)
+    nx.draw(graph, nx.spring_layout(graph))
     plt.axis('tight')
     plt.show()
