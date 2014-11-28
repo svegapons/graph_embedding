@@ -15,9 +15,10 @@ from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.linear_model import ElasticNet, SGDRegressor
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-from sklearn.feature_selection import SelectKBest, chi2, f_classif, RFE
+from sklearn.feature_selection import SelectKBest, chi2, f_classif, RFE, VarianceThreshold
+from sklearn.pipeline import Pipeline
 from sklearn.grid_search import GridSearchCV
-from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.metrics import roc_auc_score, accuracy_score
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -156,6 +157,8 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 #    ss = StandardScaler()
 #    X = ss.fit_transform(X.T).T
 
+# ============= Plotting =============
+
 #    plt.title('Histogram')
 #    for i, value in enumerate(X):
 #        plt.plot(range(X.shape[1]), value, 'b-o' if y[i] == 0 else 'm-o')
@@ -164,9 +167,12 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 #    heatmap(connectivity_mat)
 #    scatter_mat(X[:, :10])
 
-#    sel = VarianceThreshold(threshold=(0.3 * (1 - 0.5)))
-#    X = sel.fit_transform(X)
-#    X = SelectKBest(f_classif, k=60).fit_transform(X, y) 10% increase in some embedding techniques
+# ============= Pre-processing =============
+
+#   it works with embedding techniques 3,5,6
+    sel = VarianceThreshold(threshold=(0.3 * (1 - 0.5)))
+    X = sel.fit_transform(X)
+    X = SelectKBest(f_classif, k=60).fit_transform(X, y) # 10% increase in some embedding techniques
 
 #    svc = SVC(kernel="linear", C=1)
 #    rfe = RFE(estimator=svc, n_features_to_select=1, step=1)
@@ -176,19 +182,7 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 #     clf = ExtraTreesClassifier()
 #     X_new = clf.fit(X, y).transform(X)
 
-#    In this snippet we make use of a sklearn.svm.LinearSVC to evaluate feature
-#    importances and select the most relevant features. Then,
-#   a sklearn.ensemble.RandomForestClassifier is trained on the
-#    transformed output, i.e. using only relevant features.
-#    You can perform similar operations with the other feature
-#   selection methods and also classifiers that provide a way to
-#   evaluate feature importances of course
-
-#    clf = Pipeline([
-#      ('feature_selection', LinearSVC(penalty="l1")),
-#      ('classification', RandomForestClassifier())
-#    ])
-#    clf.fit(X, y)
+# ============= Dimensionality reduction/classification =============
 
 #   LDA vs. QDA classifiers
 #    for i, (X, y) in enumerate([dataset_fixed_cov(), dataset_cov()]):
@@ -208,8 +202,72 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 #    plt.suptitle('LDA vs QDA')
 #    plt.show()
 
-    clf_tmp = ExtraTreesClassifier()
-    X = clf_tmp.fit(X, y).transform(X)
+
+#    kpca = KernelPCA(kernel="rbf", fit_inverse_transform=True, gamma=10)
+#    X_kpca = kpca.fit_transform(X)
+#    X_back = kpca.inverse_transform(X_kpca)
+#    pca = PCA()
+#    X_pca = pca.fit_transform(X)
+
+# ============= Pipeline feature selection/classification =============
+
+#    In this snippet we make use of a sklearn.svm.LinearSVC to evaluate feature
+#    importances and select the most relevant features. Then,
+#   a sklearn.ensemble.RandomForestClassifier is trained on the
+#    transformed output, i.e. using only relevant features.
+#    You can perform similar operations with the other feature
+#   selection methods and also classifiers that provide a way to
+#   evaluate feature importances of course
+
+#    clf = Pipeline([
+#      ('feature_selection', LinearSVC(penalty="l1")),
+#      ('classification', RandomForestClassifier())
+#    ])
+#    clf.fit(X, y)
+
+#   clf = make_pipeline(Binarizer(), MultinomialNB())
+#   clf.fit(X, y)
+
+# ============= Feature importances with forests of trees =============
+
+# use of forests of trees to evaluate the importance of features on a
+# classification task
+
+#    # Build a forest and compute the feature importances
+#    forest = ExtraTreesClassifier(n_estimators=250,
+#                                  random_state=0)
+#
+#    forest.fit(X, y)
+#    importances = forest.feature_importances_
+#    std = np.std([tree.feature_importances_ for tree in forest.estimators_],
+#                 axis=0)
+#    indices = np.argsort(importances)[::-1]
+#
+#    # Print the feature ranking
+#    print("Feature ranking:")
+#
+#    for f in range(10):
+#        print("%d. feature %d (%f)" % (f + 1, indices[f], importances[indices[f]]))
+#
+#    # Plot the feature importances of the forest
+#    plt.figure()
+#    plt.title("Feature importances")
+#    plt.bar(range(10), importances[indices],
+#           color="r", yerr=std[indices], align="center")
+#    plt.xticks(range(10), indices)
+#    plt.xlim([-1, 10])
+#    plt.show()
+
+#    clf_tmp = ExtraTreesClassifier()
+#    X = clf_tmp.fit(X, y).transform(X)
+#
+
+# ============= Gaussian Naive Bayes classifier =============
+
+#    from sklearn.naive_bayes import GaussianNB
+#    gnb = GaussianNB()
+#    y_pred = gnb.fit(iris.data, iris.target).predict(iris.data)
+#    print("Number of mislabeled points out of a total %d points : %d" % (iris.data.shape[0],(iris.target != y_pred).sum()))
 
     score = []
     n_folds = 10
@@ -217,14 +275,20 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
     for train_ind, test_ind in kfold:
         X_train, X_test = X[train_ind], X[test_ind]
         y_train, y_test = y[train_ind], y[test_ind]
+#
+#        clf = Pipeline([
+#                      ('feature_selection', LinearSVC(penalty="l1", dual=False)),
+#                      ('classification', RandomForestClassifier())
+#                      ])
+#        clf.fit(X_train, y_train)
 
         clf = LinearSVC(C=10000, loss='l2')
-#        clf = ElasticNet(alpha=0.0001, l1_ratio=0.15)
-#        clf = GradientBoostingClassifier(learning_rate=0.1, n_estimators=300, max_depth=13)
+##        clf = ElasticNet(alpha=0.0001, l1_ratio=0.15)
+##        clf = GradientBoostingClassifier(learning_rate=0.1, n_estimators=300, max_depth=13)
         clf.fit(X_train, y_train)
         pred = clf.predict(X_test)
         score.append(accuracy_score(y_test, pred))
-
+#
     print "Score: %s" %(score)
     print 'Mean AUC: %s, std: %s' %(np.mean(score), np.std(score))
 
@@ -326,8 +390,7 @@ def node_betweeness_centrality(X):
         XX[i] = node_cent
         print "graph {0} => mean {1}, min {2}, max {3}".format(i, np.mean(XX[i]), np.min(XX[i]), np.max(XX[i]))
 #    XX = XX*100
-    ss = StandardScaler()
-    XX = ss.fit_transform(XX.T).T
+    XX = StandardScaler().fit_transform(XX.T).T
 
     return XX
 
