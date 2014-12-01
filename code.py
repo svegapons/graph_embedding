@@ -148,9 +148,10 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 #    X = edge_betweeness_centrality(X)
 
 #    ####GRID SEARCH
-#    param_grid = [ {'C': [1, 10, 100, 1000], 'kernel': ['linear']}, {'C': [1, 10, 100, 1000], 'kernel': ['rbf']}]
+#    param_grid = [ {'C': [1, 10, 100, 1000], 'kernel': ['linear']},\
+#                     {'C': [1, 10, 100, 1000], 'gamma': [0.001, 0.0001], 'kernel': ['rbf']}]
 #
-#    clf = GridSearchCV(SVC(), param_grid, scoring='roc_auc', cv=5, refit=True, verbose=2)
+#    clf = GridSearchCV(SVC(), param_grid, scoring = 'roc_auc', cv=5, refit = True, verbose=2)
 #    ####
 #
      ###NORMALIZATION
@@ -170,9 +171,9 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 # ============= Pre-processing =============
 
 #   it works with embedding techniques 3,5,6
-    sel = VarianceThreshold(threshold=(0.3 * (1 - 0.5)))
+    sel = VarianceThreshold(threshold = (0.3 * (1 - 0.5)))
     X = sel.fit_transform(X)
-    X = SelectKBest(f_classif, k=60).fit_transform(X, y) # 10% increase in some embedding techniques
+    X = SelectKBest(f_classif, k = 40).fit_transform(X, y) # 10% increase in some embedding techniques
 
 #    svc = SVC(kernel="linear", C=1)
 #    rfe = RFE(estimator=svc, n_features_to_select=1, step=1)
