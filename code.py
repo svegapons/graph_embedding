@@ -23,6 +23,7 @@ from sklearn.metrics import roc_auc_score, accuracy_score
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from plots import *
+from misc import *
 
 
 def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
@@ -171,7 +172,7 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 # ============= Pre-processing =============
 
 #   it works with embedding techniques 3,5,6
-    sel = VarianceThreshold(threshold = (0.3 * (1 - 0.5)))
+    sel = VarianceThreshold(threshold = (0.3 * (1 - 0.5))) # remove all features < threshold
     X = sel.fit_transform(X)
     X = SelectKBest(f_classif, k = 40).fit_transform(X, y) # 10% increase in some embedding techniques
 
@@ -283,10 +284,13 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 #                      ])
 #        clf.fit(X_train, y_train)
 
-        clf = LinearSVC(C=10000, loss='l2')
+#        clf = LinearSVC(C=10000, loss='l2')
 ##        clf = ElasticNet(alpha=0.0001, l1_ratio=0.15)
 ##        clf = GradientBoostingClassifier(learning_rate=0.1, n_estimators=300, max_depth=13)
-        clf.fit(X_train, y_train)
+#        clf.fit(X_train, y_train)
+
+#        clf = pca_svm(X_train, y_train)
+        clf = multinomial_bayes(X_train, y_train)
         pred = clf.predict(X_test)
         score.append(accuracy_score(y_test, pred))
 #

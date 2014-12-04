@@ -58,21 +58,30 @@ from scipy.stats import randint as sp_randint
 # Pipeline: chaining estimators
 
 def pca_svm(train_data, labels):
-    estimators = [('reduce_dim', PCA()), ('svm', SVC())]
+    estimators = [('reduce_dim', PCA(n_components = 60, whiten = True)), \
+                  ('svm', SVC(C = 15000.0, gamma = 1e-4))]
     clf = Pipeline(estimators)
     clf.fit(train_data, labels)
+
+    return clf
+
 
 def multinomial_bayes(train_data, labels):
     clf = make_pipeline(Binarizer(), MultinomialNB())
     clf.fit(train_data, labels)
 
-# FeatureUnion: Combining feature extractors
+    return clf
 
+
+# FeatureUnion: Combining feature extractors
 def pca_kpca(train_data, labels):
     estimators = make_union(PCA(), TruncatedSVD(), KernelPCA())
 #    estimators = [('linear_pca', PCA()), ('kernel_pca', KernelPCA())]
     combined = FeatureUnion(estimators)
     combined.fit(train_data, labels) # combined.fit_tranform(tain_data, labels)
+
+    return combined
+
 
 # Pipelining: chaining anova with svm
 def anova_svm(train_data, labels):
@@ -85,6 +94,9 @@ def anova_svm(train_data, labels):
     anova_svm = make_pipeline(anova_filter, clf)
     anova_svm.fit(train_data, labels)
     anova_svm.predict(train_data)
+
+    return anova_svm
+
 
 # Pipelining: chaining a PCA and a logistic regression
 def pca_logisticRegression(train_data, labels):
@@ -114,6 +126,7 @@ def pca_logisticRegression(train_data, labels):
     estimator = GridSearchCV(pipe,
                              dict(pca__n_components=n_components,
                                   logistic__C=Cs))
+
     estimator.fit(train_data, labels)
 
     plt.axvline(estimator.best_estimator_.named_steps['pca'].n_components,
@@ -121,8 +134,11 @@ def pca_logisticRegression(train_data, labels):
     plt.legend(prop=dict(size=12))
     plt.show()
 
+    return estimator
+
+
 # SVM-Anova: SVM with univariate feature selection
-# how to perform univariate feature before running a SVC (support vector
+# how to perform univariate feature selection before running a SVC (support vector
 # classifier) to improve the classification scores
 def svm_anova(train_data, labels):
     ###############################################################################
@@ -156,6 +172,7 @@ def svm_anova(train_data, labels):
     plt.axis('tight')
     plt.show()
 
+
 # Concatenating multiple feature extraction methods
 def concat_feature_extractors(train_data, labels):
     # This dataset is way to high-dimensional. Better do PCA:
@@ -172,7 +189,7 @@ def concat_feature_extractors(train_data, labels):
     X_features = combined_features.fit(train_data, labels).transform(train_data)
 
     # Classify:
-    svm = SVC(kernel="linear")
+    svm = SVC(kernel = "linear")
     svm.fit(X_features, labels)
 
     # Do grid search over k, n_components and C:
@@ -186,6 +203,7 @@ def concat_feature_extractors(train_data, labels):
     grid_search = GridSearchCV(pipeline, param_grid=param_grid, verbose=10)
     grid_search.fit(train_data, labels)
     print(grid_search.best_estimator_)
+
 
 # Parameter estimation using grid search with cross-validation
 def grid_search(train_data, labels):
@@ -223,12 +241,15 @@ def grid_search(train_data, labels):
         print("The model is trained on the full development set.")
         print("The scores are computed on the full evaluation set.")
         print()
+
         y_true, y_pred = y_test, clf.predict(X_test)
+
         print(classification_report(y_true, y_pred))
         print()
 
     # Note the problem is too easy: the hyperparameter plateau is too flat and the
     # output model is the same for precision and recall with ties in quality.
+
 
 # Sample pipeline for text feature extraction and evaluation
 def pipeline_feature_extraction(train_data, labels):
@@ -300,6 +321,7 @@ def pipeline_feature_extraction(train_data, labels):
     best_parameters = grid_search.best_estimator_.get_params()
     for param_name in sorted(parameters.keys()):
         print("\t%s: %r" % (param_name, best_parameters[param_name]))
+
 
 # Randomized search and grid search for hyperparameter estimation
 def randomized_search_and_grid_search_for_hyperparameter_estimation(train_data, labels):
