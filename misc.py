@@ -12,7 +12,8 @@ from sklearn.svm import SVC, LinearSVC
 from sklearn.decomposition import PCA, KernelPCA, TruncatedSVD
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.preprocessing import Binarizer
-from sklearn.feature_selection import SelectKBest, f_regression, SelectPercentile, f_classif
+from sklearn.feature_selection import SelectKBest, f_regression, SelectPercentile, \
+                                      f_classif, VarianceThreshold
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.grid_search import GridSearchCV, RandomizedSearchCV
@@ -58,8 +59,8 @@ from scipy.stats import randint as sp_randint
 # Pipeline: chaining estimators
 
 def pca_svm(train_data, labels):
-    estimators = [('reduce_dim', PCA(n_components = 60, whiten = True)), \
-                  ('svm', SVC(C = 15000.0, gamma = 1e-4))]
+    estimators = [('reduce_dim', PCA(n_components = 10, whiten = True)), \
+                  ('svm', SVC(C = 10000.0, gamma = 1e-4))]
     clf = Pipeline(estimators)
     clf.fit(train_data, labels)
 
@@ -71,6 +72,46 @@ def multinomial_bayes(train_data, labels):
     clf.fit(train_data, labels)
 
     return clf
+
+# utility function for removing percentage of edges from adjacency matrix
+def percentage_removed(data, percentage = None, threshold = None, embedding_technique = None):
+    if (embedding_technique == "node_centrality"):
+        fst_val = 1
+        snd_val = 0.
+    else:
+        fst_val = data
+        snd_val = 0.
+    if (plt.is_numlike(percentage) and (plt.is_numlike(threshold))):
+        print("You can use only the percentage or the threshold not both at the same time")
+        return -1
+    elif (plt.is_numlike(percentage)):
+        triu = np.triu(data, k = 1) # choose symetric upper triangular matrix without its diagonal
+        triu = np.sort(np.reshape(triu, [1, len(triu)**2])) # reshape it to 1-D vector
+        triu = np.trim_zeros(np.squeeze(triu)) # remove any leading or trailing zeros
+        percentage *= 100
+        th = ((len(triu) - 1) * percentage) // 100
+        data = np.where(data > triu[th], fst_val, snd_val) # binary adjacency matrix
+    elif (plt.is_numlike(threshold)):
+        data = np.where(data > threshold, fst_val, snd_val) # binary adjacency matrix
+
+    return percentage, th, data, triu
+
+# ============= Pre-processing =============
+def variance_threshold(train_data, labels):
+#   it works with embedding techniques 3,5,6
+#    threshold : float, optional
+
+#   Features with a training-set variance lower than this threshold will
+#   be removed. The default is to keep all features with non-zero variance,
+#   i.e. remove the features that have the same value in all samples.
+    sel = VarianceThreshold(threshold = 0.15) # remove all features with variance < threshold
+#    sel = VarianceThreshold() # remove all features with variance < threshold
+    train_data = sel.fit_transform(train_data, labels)
+    train_data = SelectKBest(f_classif, k = 20).fit_transform(train_data, labels) # 10% increase in some embedding techniques
+#    train_data = SelectKBest(f_classif, k = 40).fit_transform(train_data, labels) # 10% increase in some embedding techniques
+#    train_data = SelectPercentile(15).fit_transform(train_data, labels)
+
+    return train_data
 
 
 # FeatureUnion: Combining feature extractors
@@ -89,11 +130,11 @@ def anova_svm(train_data, labels):
     # 1) anova filter, take 3 best ranked features
     anova_filter = SelectKBest(f_regression, k = 3)
     # 2) svm
-    clf = SVC(kernel = 'linear')
+    clf = SVC(C = 10000, kernel = 'rbf')
 
     anova_svm = make_pipeline(anova_filter, clf)
     anova_svm.fit(train_data, labels)
-    anova_svm.predict(train_data)
+#    anova_svm.predict(train_data)
 
     return anova_svm
 
@@ -124,8 +165,8 @@ def pca_logisticRegression(train_data, labels):
     #Parameters of pipelines can be set using ‘__’ separated parameter names:
 
     estimator = GridSearchCV(pipe,
-                             dict(pca__n_components=n_components,
-                                  logistic__C=Cs))
+                             dict(pca__n_components = n_components,
+                                  logistic__C = Cs))
 
     estimator.fit(train_data, labels)
 
@@ -147,7 +188,7 @@ def svm_anova(train_data, labels):
 
     transform = SelectPercentile(f_classif)
 
-    clf = Pipeline([('anova', transform), ('svc', SVC(C=1.0))])
+    clf = Pipeline([('anova', transform), ('svc', SVC(C = 1.0))])
 
     ###############################################################################
     # Plot the cross-validation score as a function of percentile of features
@@ -158,14 +199,13 @@ def svm_anova(train_data, labels):
     for percentile in percentiles:
         clf.set_params(anova__percentile = percentile)
         # Compute cross-validation score using all CPUs
-        this_scores = cross_val_score(clf, train_data, labels, n_jobs=1)
+        this_scores = cross_val_score(clf, train_data, labels, n_jobs = 1)
         score_means.append(this_scores.mean())
         score_stds.append(this_scores.std())
 
     plt.errorbar(percentiles, score_means, np.array(score_stds))
 
-    plt.title(
-        'Performance of the SVM-Anova varying the percentile of features selected')
+    plt.title('Performance of the SVM-Anova varying the percentile of features selected')
     plt.xlabel('Percentile')
     plt.ylabel('Prediction rate')
 
@@ -196,11 +236,11 @@ def concat_feature_extractors(train_data, labels):
 
     pipeline = Pipeline([("features", combined_features), ("svm", svm)])
 
-    param_grid = dict(features__pca__n_components=[1, 2, 3],
-                      features__univ_select__k=[1, 2],
-                      svm__C=[0.1, 1, 10])
+    param_grid = dict(features__pca__n_components = [1, 2, 3],
+                      features__univ_select__k = [1, 2],
+                      svm__C = [0.1, 1, 10])
 
-    grid_search = GridSearchCV(pipeline, param_grid=param_grid, verbose=10)
+    grid_search = GridSearchCV(pipeline, param_grid=param_grid, verbose = 10)
     grid_search.fit(train_data, labels)
     print(grid_search.best_estimator_)
 
@@ -256,8 +296,8 @@ def pipeline_feature_extraction(train_data, labels):
     print(__doc__)
 
     # Display progress logs on stdout
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s %(levelname)s %(message)s')
+    logging.basicConfig(level = logging.INFO,
+                        format = '%(asctime)s %(levelname)s %(message)s')
 
 
     ###############################################################################
@@ -305,7 +345,7 @@ def pipeline_feature_extraction(train_data, labels):
 
     # find the best parameters for both the feature extraction and the
     # classifier
-    grid_search = GridSearchCV(pipeline, parameters, n_jobs=-1, verbose=1)
+    grid_search = GridSearchCV(pipeline, parameters, n_jobs = -1, verbose = 1)
 
     print("Performing grid search...")
     print("pipeline:", [name for name, _ in pipeline.steps])
