@@ -97,14 +97,14 @@ def percentage_removed(data, percentage = None, threshold = None, embedding_tech
     return percentage, th, data, triu
 
 # ============= Pre-processing =============
-def variance_threshold(train_data, labels):
+def variance_threshold(train_data, labels, threshold):
 #   it works with embedding techniques 3,5,6
 #    threshold : float, optional
 
 #   Features with a training-set variance lower than this threshold will
 #   be removed. The default is to keep all features with non-zero variance,
 #   i.e. remove the features that have the same value in all samples.
-    sel = VarianceThreshold(threshold = 0.15) # remove all features with variance < threshold
+    sel = VarianceThreshold(threshold) # remove all features with variance < threshold
 #    sel = VarianceThreshold() # remove all features with variance < threshold
     train_data = sel.fit_transform(train_data, labels)
     train_data = SelectKBest(f_classif, k = 20).fit_transform(train_data, labels) # 10% increase in some embedding techniques

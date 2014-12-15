@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from plots import *
 from misc import *
+from gk_weisfeiler_lehman import GK_WL
 
 
 def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
@@ -93,6 +94,25 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
     y = np.array(y)
     X = np.where(X == np.inf, 0, X)
 
+#==============================================
+#    Settigs for simple embedding
+#==============================================
+#    threshold = 0.15
+#    threshold = None
+#    X = variance_threshold(X, y, threshold)
+
+
+#============================================
+#   Settings for graph kernels
+#============================================
+    graphs = [0]*len(X)
+    for (x, y), val in np.ndenumerate(X):
+        data = val.reshape(264, 264)
+        data = np.where(data > np.mean(data), 1., 0.) # binarize
+        data = data - np.diag(np.diag(data))
+        graph = nx.from_numpy_matrix(data)
+        graphs[x] = graph
+
 #    idxs = (y==0) + (y==1)
 #    X = X[idxs]
 #    y = y[idxs]
@@ -112,33 +132,33 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
     print "Dimensionality of labels => y: {0} \n".format(np.shape(y))
 
 
-    if (graph_metric == "1"):    # node_centrality
-        print "=====Edge Information Node Centrality====="
-        X = node_centrality(X)
-    elif (graph_metric == "2"):    # node_centrality
-        print "=====Edge Information Node Closeness Centrality====="
-        X = node_closeness_centrality(X)
-    elif (graph_metric == "3"):  # node_betweeness
-        print "=====Edge Information Node Betweeness Centrality====="
-        X = node_betweeness_centrality(X)
-    elif (graph_metric == "4"):  # edge_betweeness
-        print "=====Edge Information Edge Betweeness Centrality====="
-        X = edge_betweeness_centrality(X)
-    elif (graph_metric == "5"):   # node_eigenvector
-        print "=====Edge Information Node Eigenvector Centrality====="
-        X = node_eigenvector_centrality(X)
-    elif (graph_metric == "6"):  # node_communicability
-        print "=====Edge Information Node Communicability Centrality====="
-        X = node_communicability_centrality(X)
-    elif (graph_metric == "7"):  # node_load_centrality
-        print "=====Edge Information Node Load Centrality====="
-        X = node_load_centrality(X)
-    elif (graph_metric == "8"):  # node_current_flow_centrality
-        print "=====Edge Information Node Current Flow Closeness Centrality====="
-        X = node_current_flow_closeness_centrality(X)
-    else:
-        print "Wrong Choice!"
-        return
+#    if (graph_metric == "1"):    # node_centrality
+#        print "=====Edge Information Node Centrality====="
+#        X = node_centrality(X)
+#    elif (graph_metric == "2"):    # node_centrality
+#        print "=====Edge Information Node Closeness Centrality====="
+#        X = node_closeness_centrality(X)
+#    elif (graph_metric == "3"):  # node_betweeness
+#        print "=====Edge Information Node Betweeness Centrality====="
+#        X = node_betweeness_centrality(X)
+#    elif (graph_metric == "4"):  # edge_betweeness
+#        print "=====Edge Information Edge Betweeness Centrality====="
+#        X = edge_betweeness_centrality(X)
+#    elif (graph_metric == "5"):   # node_eigenvector
+#        print "=====Edge Information Node Eigenvector Centrality====="
+#        X = node_eigenvector_centrality(X)
+#    elif (graph_metric == "6"):  # node_communicability
+#        print "=====Edge Information Node Communicability Centrality====="
+#        X = node_communicability_centrality(X)
+#    elif (graph_metric == "7"):  # node_load_centrality
+#        print "=====Edge Information Node Load Centrality====="
+#        X = node_load_centrality(X)
+#    elif (graph_metric == "8"):  # node_current_flow_centrality
+#        print "=====Edge Information Node Current Flow Closeness Centrality====="
+#        X = node_current_flow_closeness_centrality(X)
+#    else:
+#        print "Wrong Choice!"
+#        return
 
 #    X = np.hstack((node_centrality(X), node_closeness_centrality(X)))
 
@@ -172,7 +192,9 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 # ============= Pre-processing =============
 
 #   it works with embedding techniques 3,5,6
-#    X = variance_threshold(X, y)
+#    threshold = 0.15
+#    threshold = None
+#    X = variance_threshold(X, y, threshold)
 
 #    svc = SVC(kernel="linear", C=1)
 #    rfe = RFE(estimator=svc, n_features_to_select=1, step=1)
@@ -282,7 +304,7 @@ def process_data(path_folder, n_files_per_subj, desc_file, graph_metric):
 #                      ])
 #        clf.fit(X_train, y_train)
 
-        clf = LinearSVC(C=10000, loss='l2', random_state=1231)
+        clf = LinearSVC(C=10000, loss='l2', random_state = 1231)
 ##        clf = ElasticNet(alpha=0.0001, l1_ratio=0.15)
 ##        clf = GradientBoostingClassifier(learning_rate=0.1, n_estimators=300, max_depth=13)
         clf.fit(X_train, y_train)
@@ -313,7 +335,8 @@ def node_centrality(X):
         adj_mat = (adj_mat - np.min(adj_mat)) / (np.max(adj_mat) - np.min(adj_mat))
 #        adj_mat = 1 - adj_mat
 
-        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.9945, None, "node_centrality") #0.98945
+        thres = None
+        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.9945, thres, "node_centrality") #0.98945
         print("percent = {0}, threshold position = {1}, threshold = {2}\n".format(percent, th, triu[th]))
 #        th = np.mean(adj_mat)
 #        th = np.mean(adj_mat) + 0.22 #22
@@ -389,7 +412,7 @@ def node_betweeness_centrality(X):
 #        th = np.mean(adj_mat) - 0.1
 #        adj_mat = np.where(adj_mat < th, adj_mat, 0.)
 
-        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.34)
+        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.34) #34
         print("percent = {0}, threshold position = {1}, threshold = {2}\n".format(percent, th, triu[th]))
 
         g = nx.from_numpy_matrix(adj_mat)
@@ -422,7 +445,7 @@ def node_eigenvector_centrality(X):
 #        th = np.mean(adj_mat) - 0.2
 #        adj_mat = np.where(adj_mat < th, adj_mat, 0.)
 
-        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.9743)
+        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.78)
         print("percent = {0}, threshold position = {1}, threshold = {2}\n".format(percent, th, triu[th]))
 
         g = nx.from_numpy_matrix(adj_mat)
@@ -456,7 +479,7 @@ def node_communicability_centrality(X):
 #        th = np.mean(adj_mat) - 0.1
 #        adj_mat = np.where(adj_mat < th, adj_mat, 0.)
 
-        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.9743)
+        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.76) #96
         print("percent = {0}, threshold position = {1}, threshold = {2}\n".format(percent, th, triu[th]))
 
         g = nx.from_numpy_matrix(adj_mat)
@@ -487,10 +510,10 @@ def node_load_centrality(X):
         adj_mat = (adj_mat - np.min(adj_mat)) / (np.max(adj_mat) - np.min(adj_mat))
         adj_mat = 1 - adj_mat
 
-        th = np.mean(adj_mat) - 0.05
-        adj_mat = np.where(adj_mat < th, adj_mat, 0.)
+#        th = np.mean(adj_mat) - 0.05
+#        adj_mat = np.where(adj_mat < th, adj_mat, 0.)
 
-        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.9743)
+        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.86)
         print("percent = {0}, threshold position = {1}, threshold = {2}\n".format(percent, th, triu[th]))
 
         g = nx.from_numpy_matrix(adj_mat)
@@ -521,10 +544,10 @@ def node_current_flow_closeness_centrality(X):
         adj_mat = (adj_mat - np.min(adj_mat)) / (np.max(adj_mat) - np.min(adj_mat))
         adj_mat = 1 - adj_mat
 
-        th = np.mean(adj_mat) - 0.05
-        adj_mat = np.where(adj_mat < th, adj_mat, 0.)
+#        th = np.mean(adj_mat) - 0.05
+#        adj_mat = np.where(adj_mat < th, adj_mat, 0.)
 
-        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.9743)
+        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.64) #74
         print("percent = {0}, threshold position = {1}, threshold = {2}\n".format(percent, th, triu[th]))
 
         g = nx.from_numpy_matrix(adj_mat)
@@ -555,10 +578,10 @@ def edge_betweeness_centrality(X):
         adj_mat = (adj_mat - np.min(adj_mat)) / (np.max(adj_mat) - np.min(adj_mat))
         adj_mat = 1 - adj_mat
 
-        th = np.mean(adj_mat) + 0.1
-        adj_mat = np.where(adj_mat < th, adj_mat, 0.)
+#        th = np.mean(adj_mat) + 0.1
+#        adj_mat = np.where(adj_mat < th, adj_mat, 0.)
 
-        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.43)
+        percent, th, adj_mat, triu = percentage_removed(adj_mat, 0.43) # 43 #63 #73
         print("percent = {0}, threshold position = {1}, threshold = {2}\n".format(percent, th, triu[th]))
 
         g = nx.from_numpy_matrix(adj_mat)
