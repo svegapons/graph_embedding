@@ -229,28 +229,3 @@ def svm(X, y):
 #
     print "Score: %s" %(score)
     print 'Mean AUC: %s, std: %s' %(np.mean(score), np.std(score))
-
-
-
-## main ##
-if __name__=='__main__':
-
-    # Path to the folder containing the connectivity matrices
-    path_folder='UCLA_Autism/UCLA_Autism_fMRI'
-    # Path to the file containing the description of the experiments.
-    # This file is used to extract the clas associated to each sample
-    desc_file='UCLA_Autism/UCLA_Autism_fMRI.csv'
-    # Number of files associated to each subject
-    n_files_per_subj = 4
-    # Choose one of the following graph metrics
-    print "Please choose [1-8] of the following graph metrics:\n \
-    1. node_centrality \n \
-    2. node_closeness_centrality \n \
-    3. node_betweeness_centrality \n \
-    4. edge_betweeness_centrality \n \
-    5. node_eigenvector_centrality\n \
-    6. node_communicability_centrality \n \
-    7. node_load_centrality \n \
-    8. node_current_flow_centrality \n"
-    graph_metric = raw_input()
-    process_data(path_folder, n_files_per_subj, desc_file, graph_metric)
